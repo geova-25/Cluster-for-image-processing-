@@ -19,6 +19,9 @@ int main(int argc, char** argv) {
   int world_size;
   MPI_Comm_size(MPI_COMM_WORLD, &world_size);
 
+
+
+  //------------------------------------Abrir archivo
   FILE *fp;
   FILE *fp1;
   int filelen;
@@ -40,38 +43,73 @@ int main(int argc, char** argv) {
     buffer[i] = buffer[i] + 1;
   }
 
-  fp1 = fopen("cat_result.data", "wb");
-  if(fp1 == NULL) printf("Error Opening Final file\n");
-  else
-  {
-    fwrite(buffer,1,filelen,fp1);
+
+
+  //----------------------------------Fin de abrir archivo
+  //------------------------------------Distribute Image
+  int number_of_bytes_per_process = 0;
+  number_of_bytes_per_process = filelen/world_size;
+  //printf("number_of_bytes_per_process: %d\n",number_of_bytes_per_process);
+  unsigned char** bytes_per_process = (unsigned char**)calloc(world_size,sizeof(char*));
+  for (int i = 0; i < world_size ; i++) {
+    bytes_per_process[i] = (unsigned char*)calloc(number_of_bytes_per_process,sizeof(unsigned char));
+    printf("i: %d\n",i);
+    printf(" i * number_of_bytes_per_process: %d\n",i* number_of_bytes_per_process);
+    int jAux = 0;
+    for (int j = i * number_of_bytes_per_process; j < (i+1)*number_of_bytes_per_process; j++) {
+      bytes_per_process[i][jAux] =  buffer[j];
+      jAux = jAux + 1;
+    }
+  }
+  //------------------------------------Execute Filter
+
+  for (int i = 0; i < world_size; i++) {
+    for (int j = 0; j < number_of_bytes_per_process; j++) {
+        bytes_per_process[i][j] = bytes_per_process[i][j] + 200;
+    }
   }
 
-  fclose(fp);
-  fclose(fp1);
+  //------------------------------------End of Execute Filter
+  //------------------------------------Message logic
+  //-----To take into account
 
-  int token;
+  // bytes_per_process = Array of pointers to unsigned char pointers of each process
+  // number_of_bytes_per_process = Quantity of bytes for each proccess
+
+
   // Receive from the lower process and send to the higher process. Take care
   // of the special case when you are the first process to prevent deadlock.
-  if (world_rank != 0) {
-    MPI_Recv(&token, 1, MPI_INT, world_rank - 1, 0, MPI_COMM_WORLD,
-             MPI_STATUS_IGNORE);
-    printf("Process %d received token %d from process %d\n", world_rank, token,
-           world_rank - 1);
-  } else {
-    // Set the token's value if you are process 0
-    token = -1;
+  if (world_rank != 0)
+  {
+    MPI_Send(bytes_per_process[world_rank], number_of_bytes_per_process, MPI_BYTE, 0, 0,MPI_COMM_WORLD);
   }
-  MPI_Send(&token, 1, MPI_INT, (world_rank + 1) % world_size, 0,
-           MPI_COMM_WORLD);
-  // Now process 0 can receive from the last process. This makes sure that at
-  // least one MPI_Send is initialized before all MPI_Recvs (again, to prevent
-  // deadlock)
-  if (world_rank == 0) {
-    MPI_Recv(&token, 1, MPI_INT, world_size - 1, 0, MPI_COMM_WORLD,
-             MPI_STATUS_IGNORE);
-    printf("Process %d received token %d from process %d\n", world_rank, token,
-           world_size - 1);
+  else
+  {
+    unsigned char* finalResult = (unsigned char*)calloc(filelen,sizeof(unsigned char));
+    unsigned char* temporary_bytes_received = (unsigned char*)calloc(number_of_bytes_per_process,sizeof(unsigned char));
+    for (int i = 0; i < number_of_bytes_per_process; i++)
+    {
+      finalResult[i] = bytes_per_process[0][i];
+    }
+    for (int i = 1; i < world_size; i++)
+    {
+      MPI_Recv(temporary_bytes_received, number_of_bytes_per_process, MPI_BYTE, i, 0, MPI_COMM_WORLD,
+               MPI_STATUS_IGNORE);
+      printf("Process %d received data %d from process %d\n", world_rank,0, i);
+      for (int j = 0; j < number_of_bytes_per_process; j++)
+      {
+        finalResult[i*number_of_bytes_per_process + j] = temporary_bytes_received[j];
+      }
+    }
+    fp1 = fopen("cat_result_2.data", "wb");
+    if(fp1 == NULL) printf("Error Opening Final file\n");
+    else
+    {
+      fwrite(finalResult,1,filelen,fp1);
+    }
+
+    fclose(fp);
+    fclose(fp1);
   }
   MPI_Finalize();
 }
