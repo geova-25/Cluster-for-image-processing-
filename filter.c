@@ -10,6 +10,20 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+
+//-----------------------Esta es la funcion que es llamada para aplicar el filtro
+//-----------------------Aqui va lo tuyo will jaja  
+
+char* filterBla(unsigned char* image_bytes, int sizeOfBufferOfBytesToFilter)
+{
+  for (int j = 0; j < sizeOfBufferOfBytesToFilter; j++) 
+  {
+    image_bytes[j] = image_bytes[j] - 1000;
+  }
+}
+
+//------------------------------------------------------------------------------
+
 int main(int argc, char** argv) {
   // Initialize the MPI environment
   MPI_Init(NULL, NULL);
@@ -39,63 +53,60 @@ int main(int argc, char** argv) {
   fread(buffer, filelen, 1, fp); // Read in the entire file
 
 
-  for (int i = 0; i < filelen; i++) {
-    buffer[i] = buffer[i] + 1;
-  }
-
-
 
   //----------------------------------Fin de abrir archivo
   //------------------------------------Distribute Image
   int number_of_bytes_per_process = 0;
   number_of_bytes_per_process = filelen/world_size;
-  //printf("number_of_bytes_per_process: %d\n",number_of_bytes_per_process);
-  unsigned char** bytes_per_process = (unsigned char**)calloc(world_size,sizeof(char*));
-  for (int i = 0; i < world_size ; i++) {
-    bytes_per_process[i] = (unsigned char*)calloc(number_of_bytes_per_process,sizeof(unsigned char));
-    printf("i: %d\n",i);
-    printf(" i * number_of_bytes_per_process: %d\n",i* number_of_bytes_per_process);
-    int jAux = 0;
-    for (int j = i * number_of_bytes_per_process; j < (i+1)*number_of_bytes_per_process; j++) {
-      bytes_per_process[i][jAux] =  buffer[j];
-      jAux = jAux + 1;
-    }
+  unsigned char* bytes_per_process = (unsigned char*)calloc(number_of_bytes_per_process,sizeof(char));
+  int iAux = 0;
+  for (int j = world_rank * number_of_bytes_per_process; j < (world_rank+1)*number_of_bytes_per_process; j++) {
+    bytes_per_process[iAux]=  buffer[j];
+    iAux = iAux + 1;
   }
-  //------------------------------------Execute Filter
+  //------------------------------------Here we execute the filter of the image
 
-  for (int i = 0; i < world_size; i++) {
-    for (int j = 0; j < number_of_bytes_per_process; j++) {
-        bytes_per_process[i][j] = bytes_per_process[i][j] + 200;
-    }
-  }
+  filterBla(bytes_per_process, number_of_bytes_per_process);
 
   //------------------------------------End of Execute Filter
-  //------------------------------------Message logic
+
+
+  //------------------------------------Message intercomunication logic of MPI
+
+
   //-----To take into account
 
   // bytes_per_process = Array of pointers to unsigned char pointers of each process
   // number_of_bytes_per_process = Quantity of bytes for each proccess
 
-
-  // Receive from the lower process and send to the higher process. Take care
-  // of the special case when you are the first process to prevent deadlock.
+  //-If the process is not the cero process
   if (world_rank != 0)
   {
-    MPI_Send(bytes_per_process[world_rank], number_of_bytes_per_process, MPI_BYTE, 0, 0,MPI_COMM_WORLD);
+    //-Then it sends to the process cero the part of the image that he processes 
+    MPI_Send(bytes_per_process, number_of_bytes_per_process, MPI_BYTE, 0, 0,MPI_COMM_WORLD);
   }
+  //-If the process indeed is the one with id 0 
   else
   {
+    //-Here the final result of the image will be stored
     unsigned char* finalResult = (unsigned char*)calloc(filelen,sizeof(unsigned char));
+    //-This is the buffer that receives the data send by each process
     unsigned char* temporary_bytes_received = (unsigned char*)calloc(number_of_bytes_per_process,sizeof(unsigned char));
+    //-This loop saves the processing of the part of the image of process id 0 
     for (int i = 0; i < number_of_bytes_per_process; i++)
     {
-      finalResult[i] = bytes_per_process[0][i];
+      finalResult[i] = bytes_per_process[i];
     }
+
+    //-This loop waits in order for the data of the other processes from the 1 to the n process that sends data
+
     for (int i = 1; i < world_size; i++)
     {
+      //-Wait for the data of the first process 
       MPI_Recv(temporary_bytes_received, number_of_bytes_per_process, MPI_BYTE, i, 0, MPI_COMM_WORLD,
                MPI_STATUS_IGNORE);
       printf("Process %d received data %d from process %d\n", world_rank,0, i);
+      //-This loop saves the data of the actual process into the final image
       for (int j = 0; j < number_of_bytes_per_process; j++)
       {
         finalResult[i*number_of_bytes_per_process + j] = temporary_bytes_received[j];
