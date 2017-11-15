@@ -13,6 +13,8 @@
 
 #define HEIGTH 1024
 #define WEIGHT 1024
+#define EXTRA_PROCESS 2
+#define GRAB_EXTRA_PROCESS EXTRA_PROCESS - 1
 
 //-----------------------Esta es la funcion que es llamada para aplicar el filtro
 //-----------------------Aqui va lo tuyo will jaja
@@ -59,7 +61,7 @@ int main(int argc, char** argv) {
 
 
   //----------------------------------Fin de abrir archivo
-  //------------------------------------Distribute Image
+  //----------------------------------Distribute Image
   int number_of_bytes_per_process = 0;
   int number_of_rows = 0;
   int number_of_bytes_per_row = 0;
@@ -72,31 +74,80 @@ int main(int argc, char** argv) {
   number_of_bytes_per_row = number_of_bytes_per_process/number_of_rows_per_process;
   total_bytes = HEIGTH * WEIGHT;
 
+  //----------------------------------When number of rows is not dividable with # of rows
 
-  unsigned char* bytes_of_this_process = (unsigned char*)calloc(number_of_rows_per_process * number_of_bytes_per_row,sizeof(char));
+
+
+
+  //----------------------------------
+
+  unsigned char* bytes_of_this_process = (unsigned char*)calloc((number_of_rows_per_process + EXTRA_PROCESS) * number_of_bytes_per_row,sizeof(char));
+  unsigned char* bytes_of_this_process_Aux = (unsigned char*)calloc(number_of_rows_per_process * number_of_bytes_per_row,sizeof(char));
   int iAux = 0;
-  for (int j = world_rank * number_of_rows_per_process * number_of_bytes_per_row; j < (world_rank+1)*number_of_rows_per_process * number_of_bytes_per_row; j++) {
+  int j = 0;
+  if(world_rank == 0)
+  {
+    j = 0;
+  }
+  else
+  {
+    j = (world_rank * number_of_rows_per_process * number_of_bytes_per_row) - EXTRA_PROCESS*number_of_bytes_per_row;
+    bytes_of_this_process = (unsigned char*)calloc((number_of_rows_per_process + EXTRA_PROCESS) * number_of_bytes_per_row,sizeof(unsigned char));
+  }
+  for (; j < (world_rank+1)*(number_of_rows_per_process + EXTRA_PROCESS)* number_of_bytes_per_row; j++)
+  {
     bytes_of_this_process[iAux]=  buffer[j];
     iAux = iAux + 1;
   }
   //------------------------------------Here we execute the filter of the image
-  char img[number_of_rows_per_process][number_of_bytes_per_row];
-  char numf[number_of_rows_per_process][number_of_bytes_per_row];
-  int imgf[number_of_rows_per_process][number_of_bytes_per_row];
-  for (int i = 0; i < number_of_rows_per_process; i++) {
-    for (int j = 0; j < number_of_bytes_per_row; j++) {
-      img[i][j] = bytes_of_this_process[i*number_of_bytes_per_row + j];
+
+  if(world_rank != 0)
+  {
+    char img[number_of_rows_per_process + EXTRA_PROCESS][number_of_bytes_per_row];
+    char numf[number_of_rows_per_process+ EXTRA_PROCESS][number_of_bytes_per_row];
+    int imgf[number_of_rows_per_process + EXTRA_PROCESS][number_of_bytes_per_row];
+    for (int i = 0; i < number_of_rows_per_process + EXTRA_PROCESS; i++)
+    {
+      for (int j = 0; j < number_of_bytes_per_row ; j++)
+      {
+        img[i][j] = bytes_of_this_process[i*number_of_bytes_per_row + j];
+      }
+    }
+    filter(number_of_rows_per_process+EXTRA_PROCESS,number_of_bytes_per_row,img, imgf);
+    int iAux = 2;
+    for (int i = 0; i < number_of_rows_per_process; i++)
+    {
+      for (int j = 0; j < number_of_bytes_per_row; j++)
+      {
+        bytes_of_this_process_Aux[i*number_of_bytes_per_row + j] = imgf[iAux][j];
+
+      }
+      iAux = iAux + 1;
+    }
+  }
+  else
+  {
+    char img[number_of_rows_per_process][number_of_bytes_per_row];
+    char numf[number_of_rows_per_process][number_of_bytes_per_row];
+    int imgf[number_of_rows_per_process][number_of_bytes_per_row];
+    for (int i = 0; i < number_of_rows_per_process; i++)
+    {
+      for (int j = 0; j < number_of_bytes_per_row; j++)
+      {
+        img[i][j] = bytes_of_this_process[i*number_of_bytes_per_row + j];
+      }
+    }
+    filter(number_of_rows_per_process,number_of_bytes_per_row,img, imgf);
+    for (int i = 0; i < number_of_rows_per_process; i++)
+    {
+      for (int j = 0; j < number_of_bytes_per_row; j++)
+      {
+        bytes_of_this_process_Aux[i*number_of_bytes_per_row + j] = imgf[i][j];
+      }
     }
   }
 
-  //filterBla(bytes_of_this_process,  number_of_rows_per_process * number_of_bytes_per_row);
-  filter(number_of_rows_per_process,number_of_bytes_per_row,img, imgf);
 
-  for (int i = 0; i < number_of_rows_per_process; i++) {
-    for (int j = 0; j < number_of_bytes_per_row; j++) {
-      bytes_of_this_process[i*number_of_bytes_per_row + j] = imgf[i][j];
-    }
-  }
 
   //------------------------------------End of Execute Filter
 
@@ -113,7 +164,7 @@ int main(int argc, char** argv) {
   if (world_rank != 0)
   {
     //-Then it sends to the process cero the part of the image that he processes
-    MPI_Send(bytes_of_this_process,  number_of_rows_per_process * number_of_bytes_per_row, MPI_BYTE, 0, 0,MPI_COMM_WORLD);
+    MPI_Send(bytes_of_this_process_Aux,  number_of_rows_per_process * number_of_bytes_per_row, MPI_BYTE, 0, 0,MPI_COMM_WORLD);
   }
   //-If the process indeed is the one with id 0
   else
