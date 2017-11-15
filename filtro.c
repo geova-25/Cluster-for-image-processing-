@@ -33,19 +33,19 @@ void filter(int h, int w, char img[h][w], int imgf[h][w])
   {
     for (j = 2; j < maxw; j++)
     {
-    
+
     result = 1*img[i-2][j-2] +  4*img[i-2][j-1] + 7*img[i-2][j]  +  4*img[i-2][j+1] + 1*img[i-2][j+2]
     		+4*img[i-1][j-2] + 16*img[i-1][j-1] + 26*img[i-1][j] + 16*img[i-1][j+1] + 4*img[i-1][j+2]
     		+7*img[i][j-2]   + 26*img[i][j-1]   + 41*img[i][j]   + 26*img[i][j+1]   + 7*img[i][j+2]
- 			+4*img[i+1][j-2] + 16*img[i+1][j-1] + 26*img[i+1][j] + 16*img[i+1][j+1] + 4*img[i+1][j+2]   
-    		+1*img[i+2][j-2] +  4*img[i+2][j-1] + 7*img[i+2][j]  +  4*img[i+2][j+1] + 1*img[i+2][j+2];	
+ 			+4*img[i+1][j-2] + 16*img[i+1][j-1] + 26*img[i+1][j] + 16*img[i+1][j+1] + 4*img[i+1][j+2]
+    		+1*img[i+2][j-2] +  4*img[i+2][j-1] + 7*img[i+2][j]  +  4*img[i+2][j+1] + 1*img[i+2][j+2];
     result = result/273;
-    
-    //printf("el valor %d\n", result+128);
-    
-    imgf[i][j] = result;	
 
-    
+    //printf("el valor %d\n", result+128);
+
+    imgf[i][j] = result;
+
+
     }
   }
 
@@ -58,71 +58,46 @@ void filter(int h, int w, char img[h][w], int imgf[h][w])
  * Función principal, aquí se colocan los valores de height h y width w
  * Abre el archivo, lo filtra, mapea y genera un nuevo archivo con el resultado
 **/
-
-int main() 
+/*
+int main()
 {
 
   int h = 1024;
   int w = 1024;
-	 
+
   FILE *fptr;
   fptr = fopen("prueba.data","rb"); //Se abre el archivo original
 
-  if(fptr == NULL) 
+  if(fptr == NULL)
   {
     printf("Error abriendo archivo");
     return 1;
   }
 
   char num[h][w];
-  
-  
+
+
   fread(num, sizeof(num), 1, fptr);
 
-  
-  
+
+
   int i;
   int j;
 
-  /*for (i = 0; i < h; i++)
-  {
-    for (j = 0; j < w; j++)
-    {
-      img[i][j] = num [i][j];
-    }
-  }
 
-  for(i = 0; i < h; i++)				//Se imprime printf el archivo original
-  {
-    for(j = 0; j < w; j++)
-    {
-      printf("%d   ", num[i][j] + 128);
-    }
-    printf("\n");
-  }*/
 
   fclose(fptr);
 
-  
+
   int imgf[h][w];
   filter(h,w, num,imgf);				//Se filtra la matriz
 
-  
-  /*for (i = 0; i < h-2; i++)
-  {
-    for (j = 0; j < w-2; j++)
-    {
-      printf(" %i", imgf[i][j] );
-    }
-    printf("\n");
-  }*/
 
-   //printf("%d   ", num[3][3] + 128);
 
 
   fptr = fopen("img.data","wb");//Se genera el archivo modificado
 
-  if(fptr == NULL) 
+  if(fptr == NULL)
   {
     printf("Error abriendo archivo");
     return 1;
@@ -130,7 +105,7 @@ int main()
 
   //char numf[h-2][w-2];
   char numf[h][w];
-  
+
   for (i = 0; i < h; i++)
   {
     for (j = 0; j < w; j++)
@@ -138,10 +113,8 @@ int main()
       numf[i][j] = imgf[i][j];
     }
   }
-  
+
   fwrite(numf, sizeof(numf), 1, fptr);			//Se guarda el archivo modificado
 
   return 0;
-}
-
-
+}*/

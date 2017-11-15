@@ -11,8 +11,8 @@
 #include <stdlib.h>
 #include "filtro.c"
 
-#define HEIGTH 400
-#define WEIGHT 400
+#define HEIGTH 1024
+#define WEIGHT 1024
 
 //-----------------------Esta es la funcion que es llamada para aplicar el filtro
 //-----------------------Aqui va lo tuyo will jaja
@@ -42,7 +42,7 @@ int main(int argc, char** argv) {
   FILE *fp;
   FILE *fp1;
   int filelen;
-  fp=fopen("cat_400_400.data", "rb");
+  fp=fopen("prueba.data", "rb");
   if(fp == NULL) printf("Error Opening original file\n");
   else
   {
@@ -80,8 +80,23 @@ int main(int argc, char** argv) {
     iAux = iAux + 1;
   }
   //------------------------------------Here we execute the filter of the image
+  char img[number_of_rows_per_process][number_of_bytes_per_row];
+  char numf[number_of_rows_per_process][number_of_bytes_per_row];
+  int imgf[number_of_rows_per_process][number_of_bytes_per_row];
+  for (int i = 0; i < number_of_rows_per_process; i++) {
+    for (int j = 0; j < number_of_bytes_per_row; j++) {
+      img[i][j] = bytes_of_this_process[i*number_of_bytes_per_row + j];
+    }
+  }
 
-  filterBla(bytes_of_this_process,  number_of_rows_per_process * number_of_bytes_per_row);
+  //filterBla(bytes_of_this_process,  number_of_rows_per_process * number_of_bytes_per_row);
+  filter(number_of_rows_per_process,number_of_bytes_per_row,img, imgf);
+
+  for (int i = 0; i < number_of_rows_per_process; i++) {
+    for (int j = 0; j < number_of_bytes_per_row; j++) {
+      bytes_of_this_process[i*number_of_bytes_per_row + j] = imgf[i][j];
+    }
+  }
 
   //------------------------------------End of Execute Filter
 
