@@ -10,9 +10,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "filtro.c"
+#include <omp.h>
 
 #define HEIGTH 1024
 #define WEIGHT 1024
+
+//#define HEIGTH 1104
+//#define WEIGHT 736
 
 //-----------------------Esta es la funcion que es llamada para aplicar el filtro
 //-----------------------Aqui va lo tuyo will jaja
@@ -35,6 +39,8 @@ int main(int argc, char** argv) {
   MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
   int world_size;
   MPI_Comm_size(MPI_COMM_WORLD, &world_size);
+
+
 
 
 
@@ -131,6 +137,10 @@ int main(int argc, char** argv) {
 
     //-This loop waits in order for the data of the other processes from the 1 to the n process that sends data
 
+    double start_time, run_time;
+    start_time = omp_get_wtime();
+
+
     for (int i = 1; i < world_size; i++)
     {
       //-Wait for the data of the first process
@@ -143,7 +153,11 @@ int main(int argc, char** argv) {
         finalResult[i* number_of_rows_per_process * number_of_bytes_per_row + j] = temporary_bytes_received[j];
       }
     }
-    fp1 = fopen("cat_result_2.data", "wb");
+
+    run_time = omp_get_wtime() - start_time;
+    printf("Time: %f seconds\n",run_time);
+
+    fp1 = fopen("result.data", "wb");
     if(fp1 == NULL) printf("Error Opening Final file\n");
     else
     {
