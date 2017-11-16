@@ -9,14 +9,36 @@
 #include <mpi.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "filtro.c"
 #include <omp.h>
 
+/*
 #define HEIGTH 1024
 #define WEIGHT 1024
+#define NOMBRE "prueba_1024x1024.data"
+*/
 
-//#define HEIGTH 1104
-//#define WEIGHT 736
+
+/*
+#define HEIGTH 1104
+#define WEIGHT 736
+#define NOMBRE "auro_736x1104.data"
+*/
+
+
+/*
+#define HEIGTH 400
+#define WEIGHT 400
+#define NOMBRE "cat_400x400.data"
+*/
+
+
+///*
+#define HEIGTH 1080
+#define WEIGHT 1920
+#define NOMBRE "CoD_1920x1080.data"
+//*/
 
 //-----------------------Esta es la funcion que es llamada para aplicar el filtro
 //-----------------------Aqui va lo tuyo will jaja
@@ -41,15 +63,12 @@ int main(int argc, char** argv) {
   MPI_Comm_size(MPI_COMM_WORLD, &world_size);
 
 
-
-
-
   //------------------------------------Abrir archivo
   FILE *fp;
   FILE *fp1;
   int filelen;
   //fp=fopen("cat_400_400.data", "rb");
-  fp=fopen("prueba.data", "rb");
+  fp=fopen(NOMBRE, "rb");
   if(fp == NULL) printf("Error Opening original file\n");
   else
   {
@@ -157,7 +176,10 @@ int main(int argc, char** argv) {
     run_time = omp_get_wtime() - start_time;
     printf("Time: %f seconds\n",run_time);
 
-    fp1 = fopen("result.data", "wb");
+    char resultado[30] = "result_";
+    strcat(resultado,NOMBRE);
+    printf("Nombre del Resultado: %s\n",resultado);
+    fp1 = fopen(resultado, "wb");
     if(fp1 == NULL) printf("Error Opening Final file\n");
     else
     {

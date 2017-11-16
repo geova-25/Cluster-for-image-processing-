@@ -62,11 +62,11 @@ void filter(int h, int w, char img[h][w], int imgf[h][w])
 int main()
 {
 
-  int h = 400;
-  int w = 400;
+  int h = 1024;
+  int w = 1024;
 
   FILE *fptr;
-  fptr = fopen("cat_400_400.data","rb"); //Se abre el archivo original
+  fptr = fopen("prueba.data","rb"); //Se abre el archivo original
 
   if(fptr == NULL)
   {
