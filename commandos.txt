@@ -1,0 +1,21 @@
+
+--------------------Para desmontar
+
+sudo mount master:/home/mpiuser  /home/mpiuser
+
+--------------------Para montar
+
+sudo umount -f -l /home/mpiuser
+
+--------------------Para entrar sin auth
+
+eval `ssh-agent`
+ssh-add ~/.ssh/id_rsa
+
+--------------------Compilacion y ejecucion
+
+mpicc -o filter filter.c  -fopenmp
+
+mpiexec -n 6 ./filter 
+
+mpiexec -f hosts -n 6 ./filter
